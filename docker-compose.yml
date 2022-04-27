@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: mudae-ranking_container
+    image: mudae-ranking
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports: 
+      - '3000:3000'
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    command: yarn dev
+
+volumes:
+  node_modules:
