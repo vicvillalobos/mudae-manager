@@ -9,7 +9,7 @@
     <div class="card-list">
       <character-card
         v-for="character in series.characters"
-        :key="character.id"
+        :key="character.id + character.name"
         :character="character"
         :divorcing="characterInDivorceList(character)"
         @toggle-divorce="addDivorce"
@@ -60,6 +60,7 @@ export default {
     .card-list {
       display: flex;
       column-gap: 5px;
+      row-gap: 15px;
       flex-direction: row;
       flex-wrap: wrap;
     }

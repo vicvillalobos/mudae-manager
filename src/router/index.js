@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from "vue-router";
+import { createRouter, createWebHashHistory } from "vue-router";
 import Home from "../views/Characters.vue";
 import Tiers from "../views/Tiers.vue";
 import Wishlist from "../views/Wishlist.vue";
@@ -13,7 +13,7 @@ const routes = [
   { path: "/mudae-manager/about", component: About },
 ];
 
-const history = createWebHistory();
+const history = createWebHashHistory();
 
 const router = createRouter({
   history,

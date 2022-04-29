@@ -59,6 +59,8 @@ const divorceList = ref([]);
 
 const showClearConfirmation = ref(false);
 
+const searchString = ref("");
+
 function addCharacterToDivorceList(character) {
   if (!characterInDivorceList(character)) {
     divorceList.value.push(character);
@@ -295,7 +297,16 @@ const charListGroupedBySeries = computed(() => {
       series[series_index].characters.push(character);
     }
   });
-  return series;
+  return [...series]
+    .map((s) => {
+      s.characters = [...s.characters].sort((a, b) => {
+        return a.name.localeCompare(b.name);
+      });
+      return s;
+    })
+    .sort((a, b) => {
+      return a.name.localeCompare(b.name);
+    });
 });
 
 function showMmasDialogue() {
@@ -365,6 +376,20 @@ const charListSortCommands = computed(() => {
 
   return str;
 });
+
+const filteredList = computed(() => {
+  const list = characterList.value.filter((x) => {
+    return (
+      x.name.toLowerCase().includes(searchString.value.toLowerCase()) ||
+      x.series.toLowerCase().includes(searchString.value.toLowerCase()) ||
+      x.alternative.some((name) => {
+        name.toLowerCase().includes(searchString.value.toLowerCase());
+      })
+    );
+  });
+  const results_number = list.length > 1 ? ` (${list.length})` : "";
+  return new Series(`Search Results${results_number}`, list);
+});
 </script>
 
 <template>
@@ -392,26 +417,42 @@ const charListSortCommands = computed(() => {
       <div class="row">
         <div class="col-6">
           <div class="form-group">
+            <label for="search">Search</label>
+            <input
+              type="text"
+              placeholder="Search by name or series"
+              class="form-control"
+              id="search"
+              v-model="searchString"
+            />
+          </div>
+        </div>
+        <div class="col-6" v-if="searchString.trim().length <= 0">
+          <div class="form-group">
             <label for="display-mode">Group by</label>
             <select v-model="displayMode">
-              <option value="ungrouped">No Groups</option>
-              <option value="group_series">Series</option>
+              <option value="ungrouped">No Groups (Sortable)</option>
+              <option value="group_series">Series (Not sortable)</option>
             </select>
           </div>
         </div>
-        <div class="col-6" v-if="displayMode == 'ungrouped'">
-          <div class="form-group" v-if="false">
-            <label for="display-mode">Sort by</label>
-            <select v-model="sortMode">
-              <option value="custom">Custom</option>
-              <option value="favorites">Favorites</option>
-              <option value="series">Series</option>
-              <option value="color">Color</option>
+        <div class="col-6" v-else>
+          <div class="form-group">
+            <label for="display-mode">Group by</label>
+            <select disabled>
+              <option selected>Search results (Not sortable)</option>
             </select>
           </div>
         </div>
       </div>
-      <div class="v-card" v-if="displayMode == 'ungrouped'">
+      <div
+        class="v-card"
+        v-if="searchString.trim().length <= 0 && displayMode == 'ungrouped'"
+      >
+        <p>
+          You can drag and drop character cards to sort them. Make sure to press
+          the Save button when you're done.
+        </p>
         <draggable
           class="charlist"
           v-model="characterList"
@@ -431,11 +472,26 @@ const charListSortCommands = computed(() => {
           </template>
         </draggable>
       </div>
-      <div class="charlist v-card grouped" v-if="displayMode == 'group_series'">
+      <div
+        class="charlist v-card grouped"
+        v-if="searchString.trim().length <= 0 && displayMode == 'group_series'"
+      >
         <series-group
           v-for="series in charListGroupedBySeries"
           :key="series.name"
           :series="series"
+          :divorce-list="divorceList"
+          @toggle-divorce="addCharacterToDivorceList"
+          @delete-character="intentDeleteCharacter"
+          @show-modal="toggleCharacterModal(true, $event)"
+        ></series-group>
+      </div>
+      <div
+        class="charlist v-card grouped"
+        v-if="searchString.trim().length > 0"
+      >
+        <series-group
+          :series="filteredList"
           :divorce-list="divorceList"
           @toggle-divorce="addCharacterToDivorceList"
           @delete-character="intentDeleteCharacter"

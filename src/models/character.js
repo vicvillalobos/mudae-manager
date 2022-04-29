@@ -183,7 +183,7 @@ export default class Character {
   }
 
   FillFromFetched(data) {
-    console.log(`[${this.name}]::FillFromFetched`, data);
+    //console.log(`[${this.name}]::FillFromFetched`, data);
     this.canonicalName = data.name.full;
     if (data.media) {
       this.series = Character.GetDefaultEdge(

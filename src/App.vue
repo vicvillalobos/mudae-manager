@@ -136,7 +136,8 @@ body {
     }
     .form-group {
       margin-bottom: 1em;
-      select {
+      select,
+      input {
         background-color: hsl(0, 0%, 98%);
         box-shadow: 0 14px 30px rgba(var(--color-shadow-blue), 0.1),
           0 4px 4px rgba(var(--color-shadow-blue), 0.04);
@@ -150,6 +151,11 @@ body {
         padding: 11px 16px;
         padding-left: 13px;
         outline: 0;
+        &::placeholder {
+          /* Chrome, Firefox, Opera, Safari 10.1+ */
+          color: hsl(208, 15%, 85%);
+          opacity: 1; /* Firefox */
+        }
       }
     }
     .charlist {

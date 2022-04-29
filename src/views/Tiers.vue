@@ -141,7 +141,7 @@
         </template>
       </draggable>
     </div>
-    <div class="actions" v-if="!loadingCharacters">
+    <div class="actions">
       <button @click="save">Save</button>
     </div>
   </div>
