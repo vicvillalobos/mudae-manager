@@ -6,11 +6,11 @@ import WishSpawnCalculator from "../views/WishSpawnCalculator.vue";
 import About from "../views/About.vue";
 
 const routes = [
-  { path: "/", component: Home },
-  { path: "/tiers", component: Tiers },
-  { path: "/wishlist", component: Wishlist },
-  { path: "/wishspawn", component: WishSpawnCalculator },
-  { path: "/about", component: About },
+  { path: "/mudae-manager/", component: Home },
+  { path: "/mudae-manager/tiers", component: Tiers },
+  { path: "/mudae-manager/wishlist", component: Wishlist },
+  { path: "/mudae-manager/wishspawn", component: WishSpawnCalculator },
+  { path: "/mudae-manager/about", component: About },
 ];
 
 const history = createWebHistory();
