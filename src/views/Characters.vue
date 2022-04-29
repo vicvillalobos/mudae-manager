@@ -410,6 +410,13 @@ const filteredList = computed(() => {
         </div>
       </div>
     </div>
+    <div class="v-card" v-if="!loadingCharacters && characterList.length <= 0">
+      <p>
+        To start, enter the $mmas command on discord and copy the list the Mudae
+        bot will send you. Then press the 'input from $mmas' button and paste it
+        on the text box that will appear.
+      </p>
+    </div>
     <div
       class="data-step"
       v-if="characterList.length > 0 && !loadingCharacters"
