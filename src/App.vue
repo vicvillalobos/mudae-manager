@@ -8,27 +8,27 @@
         <nav>
           <ul>
             <li>
-              <router-link to="/">
+              <router-link to="/mudae-manager/">
                 <i class="bi bi-people"></i> Characters
               </router-link>
             </li>
             <li>
-              <router-link to="/tiers">
+              <router-link to="/mudae-manager/tiers">
                 <i class="bi bi-award"></i> Tiers
               </router-link>
             </li>
             <li>
-              <router-link to="/wishlist">
+              <router-link to="/mudae-manager/wishlist">
                 <i class="bi bi-star"></i> Wishlist
               </router-link>
             </li>
             <li>
-              <router-link to="/wishspawn">
+              <router-link to="/mudae-manager/wishspawn">
                 <i class="bi bi-calculator"></i> Wish Spawn Calculator
               </router-link>
             </li>
             <li>
-              <router-link to="/about">
+              <router-link to="/mudae-manager/about">
                 <i class="bi bi-question-circle"></i> About
               </router-link>
             </li>
