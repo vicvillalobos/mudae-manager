@@ -16,34 +16,21 @@
 </template>
 
 <script>
+import { state, addToast } from "../stores/toast";
 export default {
-  props: {
-    timeout: {
-      type: Number,
-      default: 5000,
-    },
-  },
   data() {
     return {
-      toasts: [],
+      timeout: 5000,
     };
   },
   methods: {
     addToast(text, icon) {
-      const time = new Date().getTime();
-      this.toasts.push({
-        time: time,
-        text: text,
-        icon: icon,
-      });
-      setTimeout(() => {
-        this.removeToast(time);
-      }, 5000);
+      addToast(text, icon, timeout);
     },
-    removeToast(time) {
-      this.toasts = this.toasts.filter((toast) => {
-        return toast.time !== time;
-      });
+  },
+  computed: {
+    toasts() {
+      return state.value.toasts;
     },
   },
 };

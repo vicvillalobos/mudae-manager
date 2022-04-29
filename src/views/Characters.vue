@@ -1,6 +1,7 @@
 <script setup>
 // Libraries
 import { computed, ref, onMounted } from "vue";
+import { addToast } from "../stores/toast";
 import draggable from "vuedraggable";
 // Models
 import Series from "../models/series";
@@ -10,7 +11,6 @@ import CharacterCard from "../components/CharacterCard.vue";
 import SeriesGroup from "../components/SeriesGroup.vue";
 import CharacterCardModal from "../components/CharacterCardModal.vue";
 import ConfirmationModal from "../components/ConfirmationModal.vue";
-import Toaster from "../components/Toaster.vue";
 import AddCharacterModal from "../components/AddCharacterModal.vue";
 import MmasDialogue from "../components/MmasDialogue.vue";
 import ExportDialogue from "../components/ExportDialogue.vue";
@@ -27,7 +27,7 @@ let characterList = ref([]);
 // Are we loading data?
 let loadingCharacters = ref(false);
 // List group by
-let displayMode = ref("group_series");
+let displayMode = ref("ungrouped");
 // List sorting mode
 let sortMode = ref("series");
 // Is the user dragging a card?
@@ -58,11 +58,6 @@ const exportDialogueRef = ref(null);
 const divorceList = ref([]);
 
 const showClearConfirmation = ref(false);
-
-function addToast(text, icon) {
-  // console.log("toaster", toasterRef);
-  toasterRef.value.addToast(text, icon);
-}
 
 function addCharacterToDivorceList(character) {
   if (!characterInDivorceList(character)) {
@@ -416,10 +411,9 @@ const charListSortCommands = computed(() => {
           </div>
         </div>
       </div>
-      <div class="v-card">
+      <div class="v-card" v-if="displayMode == 'ungrouped'">
         <draggable
           class="charlist"
-          v-if="displayMode == 'ungrouped'"
           v-model="characterList"
           @start="drag = true"
           @end="drag = false"
@@ -493,7 +487,6 @@ const charListSortCommands = computed(() => {
     />
     <mmas-dialogue ref="mmasDialogueRef" @execute-mmas="executeMmas" />
     <export-dialogue ref="exportDialogueRef" />
-    <toaster ref="toasterRef" />
   </div>
 </template>
 

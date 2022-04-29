@@ -9,22 +9,27 @@
           <ul>
             <li>
               <router-link to="/">
-                <i class="bi bi-home"></i> Characters
+                <i class="bi bi-people"></i> Characters
+              </router-link>
+            </li>
+            <li>
+              <router-link to="/tiers">
+                <i class="bi bi-award"></i> Tiers
               </router-link>
             </li>
             <li>
               <router-link to="/wishlist">
-                <i class="bi bi-home"></i> Wishlist
+                <i class="bi bi-star"></i> Wishlist
               </router-link>
             </li>
             <li>
               <router-link to="/wishspawn">
-                <i class="bi bi-home"></i> Wish Spawn Calculator
+                <i class="bi bi-calculator"></i> Wish Spawn Calculator
               </router-link>
             </li>
             <li>
               <router-link to="/about">
-                <i class="bi bi-home"></i> About
+                <i class="bi bi-question-circle"></i> About
               </router-link>
             </li>
           </ul>
@@ -34,11 +39,17 @@
     <div class="site-content">
       <router-view />
     </div>
+    <toaster ref="toasterRef" />
   </div>
 </template>
 
 <script>
-export default {};
+import Toaster from "./components/Toaster.vue";
+export default {
+  components: {
+    Toaster,
+  },
+};
 </script>
 
 <style lang="scss">
@@ -77,6 +88,7 @@ body {
       position: relative;
       box-sizing: border-box;
       width: 100%;
+      margin-bottom: 1em;
     }
     .card-header-outside {
       color: rgb(92, 114, 138);

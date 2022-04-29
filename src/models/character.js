@@ -16,7 +16,8 @@ export default class Character {
     gender = "",
     seriesImage = "",
     id = 0,
-    alternative = []
+    alternative = [],
+    tier = ""
   ) {
     // if (name.length > 0) {
     //   console.trace("New Character: ", name);
@@ -35,6 +36,7 @@ export default class Character {
     this.seriesImage = seriesImage;
     this.id = id;
     this.alternative = alternative;
+    this.tier = tier;
   }
 
   // Returns true if
@@ -219,6 +221,7 @@ export default class Character {
       seriesImage: this.seriesImage,
       id: this.id,
       alternative: this.alternative,
+      tier: this.tier,
     };
   }
 
@@ -237,6 +240,7 @@ export default class Character {
     this.seriesImage = data.seriesImage;
     this.id = data.id;
     this.alternative = data.alternative;
+    this.tier = data.tier;
   }
 
   static FromJson(data) {
@@ -254,7 +258,8 @@ export default class Character {
       data.gender,
       data.seriesImage,
       data.id,
-      data.alternative
+      data.alternative,
+      data.tier
     );
   }
 
@@ -300,6 +305,18 @@ export default class Character {
     //   min_edge
     // );
     return min_edge;
+  }
+
+  SetTier(tier) {
+    if (["S", "A", "B", "C", "D", "F"].includes(tier.toUpperCase())) {
+      this.tier = tier.toUpperCase();
+    } else {
+      throw new Error("Invalid tier: " + tier);
+    }
+    return this.tier;
+  }
+  ClearTier() {
+    this.tier = "";
   }
 
   static GQL_QUERY_FETCH_CHARACTER = gql`
