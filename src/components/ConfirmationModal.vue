@@ -3,8 +3,8 @@
     <div class="modal-box">
       <p v-html="text"></p>
       <div class="actions">
-        <button @click.prevent="confirm">{{ confirmText }}</button>
         <button @click.prevent="cancel">{{ cancelText }}</button>
+        <button @click.prevent="confirm">{{ confirmText }}</button>
       </div>
     </div>
   </div>

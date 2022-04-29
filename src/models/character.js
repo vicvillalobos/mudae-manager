@@ -268,33 +268,35 @@ export default class Character {
     let min_year = 99999;
     let min_edge = null;
     edges.forEach((edge) => {
-      if (edge.node.startDate.year < min_year) {
-        min_year = edge.node.startDate.year;
-        min_edge = edge;
-      } else if (edge.node.startDate.year == min_year) {
-        // console.log(
-        //   "same year release!",
-        //   edge.node.startDate.year,
-        //   edge.node,
-        //   min_edge.node
-        // );
-        if (edge.node.popularity > min_edge.node.popularity) {
+      if (edge.node.startDate.year) {
+        if (edge.node.startDate.year < min_year) {
+          min_year = edge.node.startDate.year;
+          min_edge = edge;
+        } else if (edge.node.startDate.year == min_year) {
           // console.log(
-          //   "new series wins by popularity",
-          //   edge.node.title.romaji,
-          //   edge.node.popularity,
-          //   min_edge.node.title.romaji,
-          //   min_edge.node.popularity
+          //   "same year release!",
+          //   edge.node.startDate.year,
+          //   edge.node,
+          //   min_edge.node
           // );
-          min_edge = edge; // In case of same year releases, pick the one with the highest popularity
-        } else {
-          // console.log(
-          //   "current series wins by popularity",
-          //   min_edge.node.title.romaji,
-          //   min_edge.node.popularity,
-          //   edge.node.title.romaji,
-          //   edge.node.popularity
-          // );
+          if (edge.node.popularity > min_edge.node.popularity) {
+            // console.log(
+            //   "new series wins by popularity",
+            //   edge.node.title.romaji,
+            //   edge.node.popularity,
+            //   min_edge.node.title.romaji,
+            //   min_edge.node.popularity
+            // );
+            min_edge = edge; // In case of same year releases, pick the one with the highest popularity
+          } else {
+            // console.log(
+            //   "current series wins by popularity",
+            //   min_edge.node.title.romaji,
+            //   min_edge.node.popularity,
+            //   edge.node.title.romaji,
+            //   edge.node.popularity
+            // );
+          }
         }
       }
     });
@@ -401,6 +403,8 @@ export default class Character {
           age
           favourites
           siteUrl
+          gender
+          id
         }
       }
     }
