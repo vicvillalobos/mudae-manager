@@ -1,495 +1,55 @@
-<script setup>
-// Libraries
-import { computed, ref, onMounted } from "vue";
-import draggable from "vuedraggable";
-// Models
-import Series from "./models/series";
-import Character from "./models/character";
-// Components
-import CharacterCard from "./components/CharacterCard.vue";
-import SeriesGroup from "./components/SeriesGroup.vue";
-import CharacterCardModal from "./components/CharacterCardModal.vue";
-import ConfirmationModal from "./components/ConfirmationModal.vue";
-import Toaster from "./components/Toaster.vue";
-import AddCharacterModal from "./components/AddCharacterModal.vue";
-import MmasDialogue from "./components/MmasDialogue.vue";
-import ExportDialogue from "./components/ExportDialogue.vue";
-
-// Text from $mmas command
-const mmasInput = ref("");
-
-// Number of characters loaded
-let charactersLoaded = ref(0);
-// Number of total characters from $mmas
-let charactersTotal = ref(0);
-// Character data list
-let characterList = ref([]);
-// Are we loading data?
-let loadingCharacters = ref(false);
-// List group by
-let displayMode = ref("group_series");
-// List sorting mode
-let sortMode = ref("series");
-// Is the user dragging a card?
-let drag = ref(false);
-// Are we showing a character modal?
-const showCharacterModal = ref(false);
-// Character data for the modal
-const characterModalData = ref(null);
-// CSS Variable data for the character modal
-const characterModalCSS = ref("");
-
-const characterModal = ref(null);
-
-const deleteConfirmationModalActive = ref(false);
-
-const deleteDivorceConfirmationActive = ref(false);
-
-const deleteCharacterIntent = ref(null);
-
-const toasterRef = ref(null);
-
-const addCharacterModalRef = ref(null);
-
-const mmasDialogueRef = ref(null);
-
-const exportDialogueRef = ref(null);
-
-const divorceList = ref([]);
-
-const showClearConfirmation = ref(false);
-
-function addToast(text, icon) {
-  // console.log("toaster", toasterRef);
-  toasterRef.value.addToast(text, icon);
-}
-
-function addCharacterToDivorceList(character) {
-  if (!characterInDivorceList(character)) {
-    divorceList.value.push(character);
-  } else {
-    divorceList.value = divorceList.value.filter(
-      (c) => c.name !== character.name
-    );
-  }
-}
-
-function characterInDivorceList(character) {
-  return divorceList.value.includes(character);
-}
-
-function intentDeleteCharacter(character) {
-  deleteCharacterIntent.value = character;
-  deleteConfirmationModalActive.value = true;
-}
-
-function showDivorceDeleteConfirmationModal() {
-  if (divorceList.value.length > 0) {
-    deleteDivorceConfirmationActive.value = true;
-  } else {
-    addToast("No characters selected for divorce", "warning");
-  }
-}
-
-function confirmDeleteDivorced() {
-  if (divorceList.value.length > 0) {
-    characterList.value = characterList.value.filter((character) => {
-      // characters that return true here are kept
-      return !divorceList.value.includes(character);
-    });
-  }
-  divorceList.value = [];
-  deleteDivorceConfirmationActive.value = false;
-  saveDataToStorage();
-  addToast("The selected characters were deleted", "trash");
-}
-
-function confirmDelete() {
-  console.log("confirmDelete");
-  deleteConfirmationModalActive.value = false;
-  if (deleteCharacterIntent.value) {
-    characterList.value = characterList.value.filter(
-      (character) => character.name !== deleteCharacterIntent.value.name
-    );
-    deleteCharacterIntent.value = null;
-    saveDataToStorage();
-    addToast("Character removed", "trash");
-  }
-}
-
-function cancelDelete() {
-  console.log("cancelDelete");
-  deleteConfirmationModalActive.value = false;
-  deleteCharacterIntent.value = null;
-}
-
-// Changes the modal character data & hides/shows the modal
-function toggleCharacterModal(v, character) {
-  //console.log("[App.vue] toggleCharacterModal(", v, ",", character, ")");
-  if (v) {
-    characterModal.value.showModal(character);
-  } else {
-    characterModal.value.hideModal();
-  }
-}
-
-// Save character data
-function saveCharacter(character_data) {
-  //console.log("save character grouped intent", character_data);
-  const character = character_data.character;
-  const data = character_data.data;
-  character.FromJson(data);
-  saveDataToStorage();
-}
-
-// Clear all character data.
-// This will also clear the $mmas input.
-function clearList() {
-  mmasInput.value = "";
-  characterList.value = [];
-  saveDataToStorage(false);
-  addToast("Data cleared", "eraser");
-  showClearConfirmation.value = false;
-}
-
-async function executeMmas(mmas) {
-  if (characterList.value.length > 0) {
-    await replaceDataFromMMS(mmas);
-  } else {
-    await loadDataFromMMS(mmas);
-  }
-  saveDataToStorage();
-}
-
-// Load character data from $mmas input
-// First fetch series data from anilist, including characters details.
-// Then fetch individual character details for those not found in the series data.
-async function loadDataFromMMS(mmasInput) {
-  loadingCharacters.value = true;
-  //console.log("loading characters");
-  try {
-    const series = Series.GetSeriesFromMMAS(mmasInput);
-
-    await fetchAndPush(series);
-
-    loadingCharacters.value = false;
-  } catch (e) {
-    console.trace(e);
-  }
-}
-
-async function fetchAndPush(series) {
-  charactersLoaded.value = 0;
-  charactersTotal.value = 0;
-  // count characters
-  series.forEach((series) => {
-    charactersTotal.value += series.characters.length;
-  });
-  for (let i = 0; i < series.length; i++) {
-    if (series[i].characters.length <= 0) {
-      continue;
-    }
-    console.log(`fetching data for series ${i + 1}/${series.length}...`);
-    const res = await series[i].FetchData();
-
-    characterList.value = [...characterList.value, ...series[i].characters];
-    charactersLoaded.value += series[i].characters.length;
-  }
-}
-
-async function replaceDataFromMMS(mmasInput) {
-  loadingCharacters.value = true;
-
-  try {
-    const cloneCharacters = [...characterList.value];
-    const seriesList = Series.GetSeriesFromMMAS(mmasInput);
-
-    let charactersInput = [];
-
-    seriesList.forEach((series) => {
-      charactersInput = [...charactersInput, ...series.characters];
-    });
-
-    // Remove characters not in the input list from the current list.
-    characterList.value = characterList.value.filter(
-      (character) =>
-        charactersInput.find((c) => c.name === character.name) !== undefined
-    );
-
-    // Remove characters in the list from the input list.
-    charactersInput = charactersInput.filter(
-      (character) =>
-        characterList.value.find((c) => c.name === character.name) === undefined
-    );
-
-    // Remove characters not in the new input from the old input.
-    // Also remove series with no characters.
-    seriesList.forEach((series) => {
-      series.characters = series.characters.filter(
-        (character) =>
-          charactersInput.find((c) => c.name === character.name) !== undefined
-      );
-    });
-
-    // New characters:
-    // Apply remaining characters in input to the list.
-    await fetchAndPush(seriesList);
-  } catch (e) {
-    console.trace(e);
-  }
-  loadingCharacters.value = false;
-}
-
-// Save character data to local storage
-function saveDataToStorage(notify = true) {
-  localStorage.setItem(
-    "v-mudae-ranking-characters",
-    btoa(
-      encodeURIComponent(
-        JSON.stringify(
-          characterList.value.map((x) => {
-            return x.toJson();
-          })
-        )
-      )
-    )
-  );
-  if (notify) addToast("Changes saved", "save");
-}
-
-function showAddModal() {
-  console.log(addCharacterModalRef.value);
-  addCharacterModalRef.value.showModal();
-}
-
-function addCharacter(character) {
-  characterList.value.push(character);
-}
-
-// Load character data from local storage
-async function loadDataFromStorage() {
-  const data = localStorage.getItem("v-mudae-ranking-characters");
-  if (data) {
-    const decoded = decodeURIComponent(atob(data));
-    const char_list = JSON.parse(decoded);
-    const l = [];
-    char_list.forEach((character_data) => {
-      l.push(Character.FromJson(character_data));
-    });
-    characterList.value = l;
-  } else {
-    console.log("no data found in storage");
-  }
-}
-
-// On Mounted, load data from storage
-onMounted(() => {
-  loadDataFromStorage();
-});
-
-// Generate character list grouped by series
-const charListGroupedBySeries = computed(() => {
-  const series = [];
-  characterList.value.forEach((character) => {
-    const series_index = series.findIndex((x) => x.name === character.series);
-    if (series_index === -1) {
-      const s = new Series(character.series);
-      s.characters.push(character);
-      series.push(s);
-    } else {
-      series[series_index].characters.push(character);
-    }
-  });
-  return series;
-});
-
-function showMmasDialogue() {
-  mmasDialogueRef.value.showModal();
-}
-
-// Show commands to sort characters in mudae.
-function showSortingExport() {
-  exportDialogueRef.value.showModal(
-    charListSortCommands.value,
-    "Paste these commands on discord.",
-    true
-  );
-}
-
-// Show commands to sort characters in mudae.
-function showDivorceExport() {
-  if (divorceList.value.length > 0) {
-    exportDialogueRef.value.showModal(
-      divorceListCommands.value,
-      "Paste this command on discord to divorce the selected characters.",
-      true
-    );
-  } else {
-    addToast("No characters selected for divorce", "exclamation-triangle");
-  }
-}
-
-const divorceListCommands = computed(() => {
-  let str = `$divorce `;
-
-  str += divorceList.value.map((x) => `${x.name}`).join("$");
-
-  return str;
-});
-
-const charListSortCommands = computed(() => {
-  if (characterList.value.length <= 0) return "";
-  let str = `<p>$firstmarry ${characterList.value[0].name}</p>`;
-
-  // split characterList into groups of 19
-
-  const groups = [];
-
-  for (let i = 0; i < characterList.value.length; i++) {
-    // 0 - 19
-    // 19 - 38
-    // 38 - 57
-    // 57 - 76
-    // ...
-    groups.push(characterList.value.slice(i * 19, (i + 1) * 19 + 1));
-  }
-
-  let last_character = characterList.value[0];
-  groups.forEach((group, i) => {
-    str += `<p>`;
-    group.forEach((character, j) => {
-      if (j == 0) {
-        str += `$sortmarry pos ${character.name}`;
-      } else {
-        str += `$${character.name}`;
-      }
-      //last_character = character;
-    });
-    str += `</p>`;
-  });
-
-  return str;
-});
-</script>
-
 <template>
-  <div id="ranking-app">
-    <div class="data-step" v-if="characterList.length > 0">
-      <h3 class="card-header-outside">
-        Characters
-        <span v-if="loadingCharacters"
-          >({{ charactersLoaded }}/{{ charactersTotal }})</span
-        ><span v-else>({{ characterList.length }})</span>
-      </h3>
-      <div class="v-card options">
-        <div class="row">
-          <div class="col-6">
-            <div class="form-group">
-              <label for="display-mode">Group by</label>
-              <select v-model="displayMode">
-                <option value="ungrouped">No Groups</option>
-                <option value="group_series">Series</option>
-              </select>
-            </div>
-          </div>
-          <div class="col-6" v-if="displayMode == 'ungrouped'">
-            <div class="form-group" v-if="false">
-              <label for="display-mode">Sort by</label>
-              <select v-model="sortMode">
-                <option value="custom">Custom</option>
-                <option value="favorites">Favorites</option>
-                <option value="series">Series</option>
-                <option value="color">Color</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <draggable
-          class="charlist"
-          v-if="displayMode == 'ungrouped'"
-          v-model="characterList"
-          @start="drag = true"
-          @end="drag = false"
-          item-key="index"
-        >
-          <template #item="{ element, index }">
-            <character-card
-              :data-index="index"
-              :character="element"
-              :divorcing="characterInDivorceList(element)"
-              @toggle-divorce="addCharacterToDivorceList"
-              @delete-character="intentDeleteCharacter"
-              @show-modal="toggleCharacterModal(true, element)"
-            ></character-card>
-          </template>
-        </draggable>
-        <character-card
-          v-if="loadingCharacters"
-          :loading="true"
-        ></character-card>
-      </div>
-      <div class="charlist v-card grouped" v-if="displayMode == 'group_series'">
-        <series-group
-          v-for="series in charListGroupedBySeries"
-          :key="series.name"
-          :series="series"
-          :divorce-list="divorceList"
-          @toggle-divorce="addCharacterToDivorceList"
-          @delete-character="intentDeleteCharacter"
-          @show-modal="toggleCharacterModal(true, $event)"
-        ></series-group>
+  <div id="ranking-app" class="content-wrapper">
+    <div class="topbar">
+      <div class="logo">vMudaeManager</div>
+    </div>
+    <div class="sidebar">
+      <div class="nav-container">
+        <nav>
+          <ul>
+            <li>
+              <router-link to="/">
+                <i class="bi bi-home"></i> Characters
+              </router-link>
+            </li>
+            <li>
+              <router-link to="/wishlist">
+                <i class="bi bi-home"></i> Wishlist
+              </router-link>
+            </li>
+            <li>
+              <router-link to="/wishspawn">
+                <i class="bi bi-home"></i> Wish Spawn Calculator
+              </router-link>
+            </li>
+            <li>
+              <router-link to="/about">
+                <i class="bi bi-home"></i> About
+              </router-link>
+            </li>
+          </ul>
+        </nav>
       </div>
     </div>
-    <div class="actions" v-if="!loadingCharacters">
-      <button @click="showMmasDialogue">Input from $mmas</button>
-      <button @click="showAddModal">Add</button>
-      <button @click="saveDataToStorage">Save</button>
-      <button @click="showClearConfirmation = true">Clear</button>
-      <button @click="showSortingExport">Export $sortmarry</button>
-      <button @click="showDivorceExport">Export $divorce</button>
-      <button @click="showDivorceDeleteConfirmationModal">
-        Delete selected
-      </button>
+    <div class="site-content">
+      <router-view />
     </div>
-    <character-card-modal
-      ref="characterModal"
-      @delete-character="intentDeleteCharacter"
-      @save-character="saveCharacter"
-      @hide-modal="toggleCharacterModal(false, null)"
-    />
-    <confirmation-modal
-      v-if="deleteCharacterIntent"
-      :text="`Are you sure you want to delete ${deleteCharacterIntent.name}?`"
-      :active="deleteConfirmationModalActive"
-      @confirm="confirmDelete"
-      @cancel="cancelDelete"
-    />
-    <confirmation-modal
-      :text="`Are you sure you want to delete the following characters: ${divorceList
-        .map((x) => x.name)
-        .join(', ')}?`"
-      :active="deleteDivorceConfirmationActive"
-      @confirm="confirmDeleteDivorced"
-      @cancel="deleteDivorceConfirmationActive = false"
-    /><confirmation-modal
-      :text="`Are you sure you want to delete <strong>ALL</strong> characters?`"
-      :active="showClearConfirmation"
-      @confirm="clearList"
-      @cancel="showClearConfirmation = false"
-    />
-    <add-character-modal
-      ref="addCharacterModalRef"
-      confirmText="Add Character"
-      @add-character="addCharacter"
-    />
-    <mmas-dialogue ref="mmasDialogueRef" @execute-mmas="executeMmas" />
-    <export-dialogue ref="exportDialogueRef" />
-    <toaster ref="toasterRef" />
   </div>
 </template>
 
+<script>
+export default {};
+</script>
+
 <style lang="scss">
+$topbar-height: 50px;
+$sidebar-width: 200px;
+:root body {
+  --bs-body-font-size: 0.7rem;
+}
 $font-family-default: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI",
+  Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+$font-family-special: Overpass, -apple-system, BlinkMacSystemFont, "Segoe UI",
   Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 body {
   padding: 0;
@@ -497,18 +57,18 @@ body {
   height: 100vh;
   width: 100vw;
   overflow: hidden;
+  font-size: 8px;
+  --color-shadow-blue: 103, 132, 187;
 }
 #app {
   width: 100vw;
-  overflow-x: auto;
+  overflow: hidden;
   height: 100vh;
-  font-size: 12px;
   background-color: rgb(237, 241, 245);
   font-family: $font-family-default;
   #ranking-app {
     width: 100%;
     position: relative;
-    padding: 2em;
 
     .v-card {
       background-color: rgb(250, 250, 250);
@@ -565,12 +125,19 @@ body {
     .form-group {
       margin-bottom: 1em;
       select {
+        background-color: hsl(0, 0%, 98%);
+        box-shadow: 0 14px 30px rgba(var(--color-shadow-blue), 0.1),
+          0 4px 4px rgba(var(--color-shadow-blue), 0.04);
+        color: hsl(208, 15%, 53%);
         width: 100%;
-        padding: 0.4em;
-        font-family: $font-family-default;
+        font-family: $font-family-special;
         font-weight: 300;
-        border-color: #ccc;
-        border-radius: 4px;
+        font-size: 12px;
+        border: none;
+        border-radius: 6px;
+        padding: 11px 16px;
+        padding-left: 13px;
+        outline: 0;
       }
     }
     .charlist {
@@ -590,6 +157,79 @@ body {
       column-gap: 5px;
       flex-wrap: nowrap;
     }
+  }
+}
+
+.content-wrapper {
+  display: flex;
+  height: 100vh;
+  margin-top: $topbar-height;
+  margin-left: $sidebar-width;
+  .topbar {
+    height: $topbar-height;
+    background-color: hsla(235, 21%, 21%, 90%);
+    backdrop-filter: blur(5px);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+    box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.05),
+      0px 2px 4px rgba(0, 0, 0, 0.1);
+    .logo {
+      width: $sidebar-width;
+      height: 100%;
+      color: #fff;
+      font-family: Overpass, sans-serif;
+      font-size: 24px;
+      padding: 0.3em 0;
+      text-align: center;
+    }
+  }
+  .sidebar {
+    position: fixed;
+    left: 0;
+    top: $topbar-height;
+    width: $sidebar-width;
+    background-color: hsla(211, 52%, 99%, 90%);
+    height: calc(100vh - #{$topbar-height});
+    .nav-container {
+      nav {
+        font-size: 1.3em;
+        ul {
+          padding: 0;
+          margin: 0;
+          li {
+            list-style-type: none;
+            a {
+              display: block;
+              box-sizing: border-box;
+              padding: 0.5em 1em;
+              background-color: hsla(211, 52%, 99%);
+              text-decoration: none;
+              font-weight: 300;
+              color: hsl(211, 20%, 45%);
+              transition: all 0.2s ease;
+              &.router-link-exact-active {
+                color: hsl(198, 100%, 50%);
+              }
+              &:hover {
+                background-color: rgb(243, 251, 255);
+                color: hsl(198, 100%, 50%);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  .site-content {
+    width: calc(100vw - #{$sidebar-width});
+    overflow: hidden;
+    overflow-y: auto;
+    padding: 2em;
+    box-sizing: border-box;
+    height: calc(100vh - #{$topbar-height});
   }
 }
 </style>

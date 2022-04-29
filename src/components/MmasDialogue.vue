@@ -42,7 +42,7 @@ export default {
   top: 0;
   left: 0;
   background-color: rgba(0 0 0 / 60%);
-  z-index: 99;
+  z-index: 200;
   overflow: hidden;
   transition: all 0.2s ease;
   pointer-events: none;
