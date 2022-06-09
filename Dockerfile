@@ -1,19 +1,17 @@
+FROM node:lts-alpine as build
+
+WORKDIR /app
+
+RUN apk add python3 build-base pkgconfig git
+
+COPY package.json .
+
+RUN yarn install
+
 FROM node:lts-alpine
 
 WORKDIR /app
 
-RUN apk add python3 python2 build-base pkgconfig
-
-RUN apk add --no-cache \
-    git \
-    build-base \
-    g++ \
-    cairo-dev \
-    jpeg-dev \
-    pango-dev \
-    freetype-dev \
-    giflib-dev
+COPY --from=build /app/node_modules ./node_modules
 
 COPY package.json .
-
-RUN yarn
