@@ -1,7 +1,20 @@
 <template>
-  <div id="ranking-app" class="content-wrapper">
-    <div class="topbar">
-      <div class="logo">vMudaeManager</div>
+  <div id="ranking-app" class="content-wrapper" :class="{ dev: environmentState.environment == 'development' }">
+    <div id="topbar">
+      <div class="logo">vMudaeManager <small v-if="environmentState.environment == 'development'">Development server version</small></div>
+      <!-- Start Desktop action bar -->
+      <div id="action-bar">
+        <button>
+          <i class="bi bi-list"></i> Input $mmas
+        </button>
+        <button>
+          <i class="bi bi-save"></i> Save
+        </button>
+        <button class="btn-danger">
+          <i class="bi bi-trash"></i> Clear All
+        </button>
+      </div>
+      <!-- End Desktop action bar-->
     </div>
     <div class="sidebar">
       <div class="nav-container">
@@ -34,6 +47,11 @@
             </li>
           </ul>
         </nav>
+        <!-- Start Mobile Action bar-->
+        <nav id="mobile-action-bar">
+
+        </nav>
+        <!-- End Mobile Action bar -->
       </div>
     </div>
     <div class="site-content">
@@ -45,10 +63,19 @@
 
 <script>
 import Toaster from "./components/Toaster.vue";
+import { state as EnvState, UpdateEnvironment } from "./stores/environment";
 export default {
   components: {
     Toaster,
   },
+  mounted() {
+    UpdateEnvironment();
+  },
+  computed: {
+    environmentState() {
+      return EnvState.value;
+    },
+  }
 };
 </script>
 
@@ -133,6 +160,12 @@ body {
       &:hover {
         background-color: rgb(36, 186, 255);
       }
+      &.btn-danger {
+        background-color: rgb(255, 0, 0);
+        &:hover {
+          background-color: rgb(255, 36, 36);
+        }
+      }
     }
     .form-group {
       margin-bottom: 1em;
@@ -183,7 +216,7 @@ body {
   height: 100vh;
   margin-top: $topbar-height;
   margin-left: $sidebar-width;
-  .topbar {
+  #topbar {
     height: $topbar-height;
     background-color: hsla(235, 21%, 21%, 90%);
     backdrop-filter: blur(5px);
@@ -194,6 +227,8 @@ body {
     z-index: 100;
     box-shadow: 0px 0px 0px 1px rgba(0, 0, 0, 0.05),
       0px 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
     .logo {
       width: $sidebar-width;
       height: 100%;
@@ -202,7 +237,29 @@ body {
       font-size: 24px;
       padding: 0.3em 0;
       text-align: center;
+      position: relative;
+      small {
+        position:absolute;
+        bottom:0px;
+        left:0;
+        text-align: left;
+        font-size:0.4em;
+        margin-left:1em;
+        opacity:0.5;
+        font-weight:100;
+      }
     }
+    #action-bar {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      height: 100%;
+      margin-right:2em;
+      column-gap: 5px;
+    }
+  }
+  &.dev #topbar {
+    border-bottom: 5px solid hsl(139, 48%, 50%);
   }
   .sidebar {
     position: fixed;
