@@ -69,12 +69,12 @@ export default {
   },
   computed: {
     characterOrDefault() {
-      return this.character || new Character("", "", "");
+      return this.character || new Character(null, "", "", "");
     },
   },
   methods: {
     async searchCharacter() {
-      const c = new Character(this.characterName, this.characterSeries);
+      const c = new Character(null, this.characterName, this.characterSeries);
 
       const data = await c.FetchDataSearch();
 

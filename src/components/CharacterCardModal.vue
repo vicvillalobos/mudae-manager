@@ -75,6 +75,7 @@
         </div>
       </div>
       <div class="actions">
+        <button @click.stop="debugInfo">Debug</button>
         <button @click.stop="reloadCharacter">Fetch</button>
         <button @click.stop="editFormStart">Edit</button>
         <button @click.stop="hideModal">Close</button>
@@ -99,7 +100,7 @@
         </div>
       </div>
       <div class="actions">
-        <button @click="saveCharacter">Save</button>
+        <button @click="saveCharacterFromForm">Save</button>
         <button>Remove</button>
         <button @click="modalFlipped = false">Cancel</button>
       </div>
@@ -115,15 +116,22 @@ import hsv from "rgb-hsv";
 import MarkdownIt from "markdown-it";
 // Models
 import Character from "../models/character";
+// Store
+import { CharactersData, SaveCharacterData } from "../stores/characters";
 //
 export default {
   components: {
     Tilt,
   },
+  props: {
+    character: {
+      type: String,
+      required: false,
+    },
+  },
   data() {
     return {
       active: false,
-      character: new Character("", ""),
       characterPalette: [],
       modalShown: false,
       modalFlipped: false,
@@ -138,11 +146,11 @@ export default {
   },
   computed: {
     descriptionHTML() {
-      if (this.character.description == null)
+      if (this.characterOrEmpty.description == null)
         return "No description available.";
       const md = new MarkdownIt();
       return md
-        .render(this.character.description)
+        .render(this.characterOrEmpty.description)
         .replaceAll(
           "~!",
           '<span class="spoiler"><span class="spoiler-btn"></span><span class="spoiler-content">'
@@ -150,20 +158,17 @@ export default {
         .replaceAll("!~", "</span>");
     },
     characterOrEmpty() {
-      if (this.character == null) {
-        return new Character("", "");
-      } else {
-        return this.character;
-      }
+      if (this.character == null) return new Character(null, "", "");
+      return CharactersData.value.claimed.find( x => x.uuid == this.character ) || new Character(null, "", "");
     },
     characterImage() {
-      if (this.character == null || this.character.name.length <= 0) return "";
-      if (this.character.image.length <= 0)
+      if (this.characterOrEmpty.name.length <= 0) return "";
+      if (this.characterOrEmpty.image.length <= 0)
         return (
           "https://via.placeholder.com/200x350?text=" +
-          this.character.name.replaceAll(" ", "+")
+          this.characterOrEmpty.name.replaceAll(" ", "+")
         );
-      return this.character.image + "?" + new Date().getTime();
+      return this.characterOrEmpty.image + "?" + new Date().getTime();
     },
     characterPaletteCSS() {
       if (this.characterPalette == null || this.characterPalette.length <= 0)
@@ -190,13 +195,13 @@ export default {
         }
       });
       let genderColor = "0, 0%, 30%";
-      if (this.character.gender == "Male") {
+      if (this.characterOrEmpty.gender == "Male") {
         genderColor = "213, 100%, 50%";
-      } else if (this.character.gender == "Female") {
+      } else if (this.characterOrEmpty.gender == "Female") {
         genderColor = "337, 100%, 50%";
       } else if (
-        this.character.gender != null &&
-        this.character.gender.length > 0
+        this.characterOrEmpty.gender != null &&
+        this.characterOrEmpty.gender.length > 0
       ) {
         genderColor = "280, 100%, 50%";
       }
@@ -223,32 +228,31 @@ export default {
     },
     async selectDominantColor() {
       if (this.character == null) return;
-      if (this.character.image.length <= 0) return;
+      if (this.characterOrEmpty.image.length <= 0) return;
       const charImgElement = this.$refs.charImgElement;
       //   console.log("getting palette from image", charImgElement);
       const colorThief = new ColorThief();
       this.characterPalette = await colorThief.getPalette(charImgElement, 5);
       //   console.log("character palette obtained", this.characterPalette);
     },
-    async showModal(character) {
-      this.character = character;
-      if (this.character.image.length <= 0) {
+    async showModal() {
+      // if (this.characterOrEmpty.image.length <= 0) {
         this.active = true;
-      }
+      // }
     },
     hideModal() {
       this.characterPalette = [];
       this.modalFlipped = false;
       this.active = false;
-      this.character = new Character("", "");
     },
     // Save Character
-    saveCharacter() {
-      this.$emit("save-character", {
-        character: this.character,
-        data: this.editForm,
-      });
+    saveCharacterFromForm() {
+      SaveCharacterData(this.character, this.editForm);
       this.modalFlipped = false;
+    },
+    saveCharacter(new_character) {
+      SaveCharacterData(this.character, new_character);
+
     },
     // Fetch Character data based on name
     // WARNING: If the name is ambiguous, the character may be
@@ -256,7 +260,9 @@ export default {
     async reloadCharacter() {
       // console.log("reloading character");
       // console.log(props.character);
-      const c = new Character(this.character.name, this.character.series);
+      const cix = CharactersData.value.claimed.findIndex(x => x.uuid == this.character);
+      if(cix < 0) return;
+      const c = CharactersData.value.claimed[cix];
       const data = await c.FetchDataSearch();
       console.log(data);
       if (
@@ -267,18 +273,19 @@ export default {
       ) {
         // console.log(data);
         c.FillFromFetched(data);
-        this.$emit("save-character", {
-          character: this.character,
-          data: c.toJson(),
-        });
+        this.saveCharacter(c);
       }
+    },
+    debugInfo() {
+      console.log('Character data: ',this.characterOrEmpty.toJson());
+      console.log('Character sanitized name: ', this.characterOrEmpty.GetSanitizedName());
     },
     // Edit Character
     editFormStart() {
       this.editForm = {
-        name: this.character.name,
-        series: this.character.series,
-        image: this.character.image,
+        name: this.characterOrEmpty.name,
+        series: this.characterOrEmpty.series,
+        image: this.characterOrEmpty.image,
       };
       this.modalFlipped = true;
     },
@@ -289,7 +296,7 @@ export default {
           this.characterPalette == null ||
           this.characterPalette.length <= 0
         ) {
-          if (this.character.image.length > 0) {
+          if (this.characterOrEmpty.image.length > 0) {
             await this.selectDominantColor();
           }
           this.active = true;

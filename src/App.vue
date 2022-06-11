@@ -1,94 +1,108 @@
 <template>
   <div id="ranking-app" class="content-wrapper" :class="{ dev: environmentState.environment == 'development' }">
-    <div id="topbar">
-      <div class="logo">vMudaeManager <small v-if="environmentState.environment == 'development'">Development server version</small></div>
-      <!-- Start Desktop action bar -->
-      <div id="action-bar">
-        <button>
-          <i class="bi bi-list"></i> Input $mmas
-        </button>
-        <button>
-          <i class="bi bi-save"></i> Save
-        </button>
-        <button class="btn-danger">
-          <i class="bi bi-trash"></i> Clear All
-        </button>
-      </div>
-      <!-- End Desktop action bar-->
-    </div>
-    <div class="sidebar">
-      <div class="nav-container">
-        <nav>
-          <ul>
-            <li>
-              <router-link to="/">
-                <i class="bi bi-people"></i> Characters
-              </router-link>
-            </li>
-            <li>
-              <router-link to="/tiers">
-                <i class="bi bi-award"></i> Tiers
-              </router-link>
-            </li>
-            <li>
-              <router-link to="/wishlist">
-                <i class="bi bi-star"></i> Wishlist
-              </router-link>
-            </li>
-            <li>
-              <router-link to="/wishspawn">
-                <i class="bi bi-calculator"></i> Wish Spawn Calculator
-              </router-link>
-            </li>
-            <li>
-              <router-link to="/about">
-                <i class="bi bi-question-circle"></i> About
-              </router-link>
-            </li>
-          </ul>
-        </nav>
-        <!-- Start Mobile Action bar-->
-        <nav id="mobile-action-bar">
-
-        </nav>
-        <!-- End Mobile Action bar -->
-      </div>
-    </div>
+    <Navbar />
     <div class="site-content">
       <router-view />
+      <footer-component />
     </div>
     <toaster ref="toasterRef" />
+    <mmas-dialogue ref="mmasDialogueRef" @execute-mmas="executeMmas" />
+    <export-dialogue ref="exportDialogueRef" />
+    <character-card-modal
+      ref="characterModal"
+      :character="activeCharacter"
+    />
   </div>
 </template>
 
-<script>
-import Toaster from "./components/Toaster.vue";
-import { state as EnvState, UpdateEnvironment } from "./stores/environment";
-export default {
-  components: {
-    Toaster,
-  },
-  mounted() {
+<script setup>
+  // Composition API
+  import { ref, computed, onMounted, inject } from "vue";
+  import { useRouter } from "vue-router";
+
+  // Stores
+  import { state as EnvState, UpdateEnvironment } from "./stores/environment";
+  import { CharactersData, ImportCharacters, SaveAll, LoadAll, ClearAll, SelectActiveCharacter } from "./stores/characters";
+
+  // Components
+  import Navbar from "./components/Navbar.vue";
+  import MmasDialogue from "./components/MmasDialogue.vue";
+  import ExportDialogue from "./components/ExportDialogue.vue";
+  import Toaster from "./components/Toaster.vue";
+  import CharacterCardModal from "./components/CharacterCardModal.vue";
+  import FooterComponent from "./components/Footer.vue";
+  const router = useRouter();
+
+  const emitter = inject('emitter');
+
+  // Refs (data)
+  const characterModal = ref(null);
+  const mmasDialogueRef = ref(null);
+  const exportDialogueRef = ref(null);
+
+  // Receive character modal event
+  emitter.on('show-character-card', (value) => {   // *Listen* for event
+    SelectActiveCharacter(value);
+    characterModal.value.showModal();
+  });
+
+  emitter.on('show-mmas-dialogue', () => {
+    mmasDialogueRef.value.showModal();
+  });
+
+  emitter.on('global-save', () => {
+    SaveAll();
+  });
+
+  emitter.on('show-divorce-output', (value) => {
+    exportDialogueRef.value.showModal('$divorce ' + CharactersData.value.claimed.filter(x => value.includes(x.uuid)).map(x => x.mudaeName).join('$'), "Copy the following command to your mudae-enabled discord server to divorce the selected characters.");
+  });
+
+  onMounted(() => {
+    LoadAll();
     UpdateEnvironment();
-  },
-  computed: {
-    environmentState() {
-      return EnvState.value;
-    },
+  });
+  
+  function executeMmas(mmas) {
+      ImportCharacters(mmas);
+      router.push('/import');
   }
-};
+  
+  function saveAll() {
+      SaveAll();
+  }
+
+  function clearAll() {
+      ClearAll();
+  }
+
+
+  const environmentState = computed(() => {
+      return EnvState.value;
+  });
+
+  const activeCharacter = computed(() => {
+      return CharactersData.value.activeCharacter;
+  });
+
+  const characterModalShow = computed(() => {
+      return CharactersData.value.activeCharacter != null;
+  });
+
 </script>
 
 <style lang="scss">
 $topbar-height: 50px;
-$sidebar-width: 200px;
+$sidebar-width: 0px;
 :root body {
   --bs-body-font-size: 0.7rem;
+  --bs-dark-rgb: 52, 58, 64;
 }
 $font-family-default: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI",
   Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 $font-family-special: Overpass, -apple-system, BlinkMacSystemFont, "Segoe UI",
   Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  
 body {
   padding: 0;
   margin: 0;
@@ -146,19 +160,22 @@ body {
           0px 2px 4px rgba(0, 0, 0, 0.1);
       }
     }
-    button {
-      background-color: rgb(0, 149, 255);
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      padding: 1em 2em;
-      margin: 0.4em 0;
+    a.btn {
+      font-weight:400;
+      font-size: 0.8rem;
+      font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI";
+    }
+    .btn {
       cursor: pointer;
       font-family: $font-family-default;
       transition: all 0.2s ease;
       font-weight: 500;
-      &:hover {
-        background-color: rgb(36, 186, 255);
+      font-size: 0.8em;
+      &.btn-primary {
+        background-color: rgb(0, 149, 255);
+        &:hover {
+          background-color: rgb(36, 186, 255);
+        }
       }
       &.btn-danger {
         background-color: rgb(255, 0, 0);

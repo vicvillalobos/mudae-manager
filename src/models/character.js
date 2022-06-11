@@ -1,11 +1,14 @@
 import { GraphQLClient, gql } from "graphql-request";
 import Utils from "./utils";
+import { v4 as uuidv4 } from "uuid";
 
 export default class Character {
   constructor(
+    uuid,
     name,
     series,
     canonicalName = "",
+    canonicalSeries = "",
     image = "",
     birthday = 1,
     birthmonth = 1,
@@ -17,14 +20,24 @@ export default class Character {
     seriesImage = "",
     id = 0,
     alternative = [],
-    tier = ""
+    tier = "",
+    kakeraValue = 0,
+    keysAmount = 0,
+    mudaeName = "",
+    mudaeImage = ""
   ) {
     // if (name.length > 0) {
     //   console.trace("New Character: ", name);
     // }
-    this.name = name;
+    if(uuid == null) {
+      this.uuid = uuidv4();
+    } else {
+      this.uuid = uuid;
+    }
+    this.name = Utils.CharacterSpellCheck(name);
     this.series = Utils.SeriesSpellCheck(series);
     this.canonicalName = canonicalName;
+    this.canonicalSeries = canonicalSeries;
     this.image = image;
     this.birthday = birthday;
     this.birthmonth = birthmonth;
@@ -37,9 +50,15 @@ export default class Character {
     this.id = id;
     this.alternative = alternative;
     this.tier = tier;
+    this.kakeraValue = kakeraValue;
+    this.keysAmount = keysAmount;
+    this.mudaeName = mudaeName;
+    this.mudaeImage = mudaeImage;
+    this.status = "parsed";
   }
 
-  // Returns true if
+  /// Returns whether the input series title is the same as the saved one.
+  /// Input series title must be an object with a 'romaji' property and an optional 'english' property.
   CompareSeriesName(series_title) {
     const romaji = Utils.SanitizeSpecialCharacters(
       series_title.romaji,
@@ -52,12 +71,6 @@ export default class Character {
       romaji.toLowerCase().includes(sanitized.toLowerCase()) ||
       sanitized.toLowerCase().includes(romaji.toLowerCase());
 
-    // console.log(
-    //   `[${
-    //     this.name
-    //   }::CompareSeriesName] romajiMatch: ${romaji.toLowerCase()} => ${sanitized.toLowerCase()}`
-    // );
-
     let englishMatch = false;
     if (series_title.english != null) {
       const english = Utils.SanitizeSpecialCharacters(
@@ -69,32 +82,68 @@ export default class Character {
       englishMatch =
         english.toLowerCase().includes(sanitized.toLowerCase()) ||
         sanitized.toLowerCase().includes(english.toLowerCase());
-
-      // console.log(
-      //   `[${
-      //     this.name
-      //   }::CompareSeriesName] englishMatch: ${english.toLowerCase()} => ${sanitized.toLowerCase()}`
-      // );
     }
-
-    // console.log(
-    //   `[${this.name}::CompareSeriesName] romaji: ${romajiMatch}, english:${englishMatch}`
-    // );
 
     return romajiMatch || englishMatch;
   }
 
-  GetSanitizedName() {
+  /// Checks whether a saved character corresponds to the input first and last names
+  CheckByNames(names) {
+
+      const currentName = this.GetSanitizedName();
+    
+      const nameWithoutParenthesis = currentName.split("(")[0].trim();
+
+
+      const names_first = names.first || "";
+      const names_last = names.last || "";
+      const names_full = names.full || "";
+
+      console.log('[CheckByNames]: ', names_full, nameWithoutParenthesis);
+
+      let alternativeChecks = false;
+      for (let i = 0; i < names.alternative.length; i ++ ) {
+        if (this.name == names.alternative[i]) {
+          alternativeChecks = true;
+          break;
+        }
+      }
+
+      const result = (
+        alternativeChecks ||
+        this.name === `${names_first.trim()} ${names_last.trim()}` ||
+        this.name === `${names_last.trim()} ${names_first.trim()}` ||
+        this.name === names_first.trim() ||
+        this.name === names_last.trim() ||
+        this.name === names_full.trim() ||
+        nameWithoutParenthesis === `${names_first.trim()} ${names_last.trim()}` ||
+        nameWithoutParenthesis === `${names_last.trim()} ${names_first.trim()}` ||
+        nameWithoutParenthesis === names_first.trim() ||
+        nameWithoutParenthesis === names_last.trim() ||
+        nameWithoutParenthesis === names_full.trim()
+      );
+
+      console.log('[CheckByNames]: Result => ', result);
+
+      return result;
+  }
+
+  GetSanitizedName(withoutParenthesis = true) {
     const charactersToReplace = "áéíóúñãõåàèìòùâêîôûäëïöü";
     const replacements = "aeiounaoaaeiouaeiouaeiou";
 
-    return Utils.SanitizeSpecialCharacters(
+    const sanitized = Utils.SanitizeSpecialCharacters(
       this.GetNameWithoutHonorifics(),
       charactersToReplace,
       replacements
     );
+
+    if (withoutParenthesis) {
+      return sanitized.split("(")[0].trim();
+    }
   }
 
+  /// Fetches data from sanitized character name
   async FetchData(client = null) {
     if (client == null) {
       client = new GraphQLClient("https://graphql.anilist.co");
@@ -102,15 +151,12 @@ export default class Character {
     // Get series data from anilist.co GraphQL API
     const query = Character.GQL_QUERY_FETCH_CHARACTER;
 
-    // console.log("fetching character:", this.GetSanitizedName());
-
     const variables = {
       charName: this.GetSanitizedName(),
     };
 
     try {
       const data = await client.request(query, variables);
-      //console.log(`[${this.name}::FetchData] char data:`, data);
       return data;
     } catch (e) {
       console.error(e);
@@ -140,11 +186,11 @@ export default class Character {
     return name;
   }
 
+  /// Fetches character data from a list of characters from ANILIST.CO
   async FetchDataSearch(client = null) {
     if (client == null) {
       client = new GraphQLClient("https://graphql.anilist.co");
     }
-
     const query = Character.GQL_QUERY_SEARCH_CHARACTER;
 
     const variables = {
@@ -183,16 +229,17 @@ export default class Character {
   }
 
   FillFromFetched(data) {
-    //console.log(`[${this.name}]::FillFromFetched`, data);
+    console.log(`[${this.name}]::FillFromFetched`, data);
     this.canonicalName = data.name.full;
     if (data.media) {
-      this.series = Character.GetDefaultEdge(
+      this.canonicalSeries = Character.GetDefaultEdge(
         data.media.edges
       ).node.title.romaji;
       this.seriesImage = Character.GetDefaultEdge(
         data.media.edges
       ).node.bannerImage;
     }
+    
     this.image = data.image.large;
     this.birthday = data.dateOfBirth.day;
     this.birthmonth = data.dateOfBirth.month;
@@ -207,8 +254,10 @@ export default class Character {
 
   toJson() {
     return {
+      uuid: this.uuid,
       name: this.name,
       canonicalName: this.canonicalName,
+      canonicalSeries: this.canonicalSeries,
       series: this.series,
       image: this.image,
       birthday: this.birthday,
@@ -222,12 +271,18 @@ export default class Character {
       id: this.id,
       alternative: this.alternative,
       tier: this.tier,
+      kakeraValue: this.kakeraValue,
+      keysAmount: this.keysAmount,
+      mudaeName: this.mudaeName,
+      mudaeImage: this.mudaeImage,
     };
   }
 
   FromJson(data) {
+    this.uuid = data.uuid;
     this.name = data.name;
     this.canonicalName = data.canonicalName;
+    this.canonicalSeries = data.canonicalSeries;
     this.series = data.series;
     this.image = data.image;
     this.birthday = data.birthday;
@@ -241,13 +296,19 @@ export default class Character {
     this.id = data.id;
     this.alternative = data.alternative;
     this.tier = data.tier;
+    this.kakeraValue = data.kakeraValue;
+    this.keysAmount = data.keysAmount;
+    this.mudaeName = data.mudaeName;
+    this.mudaeImage = data.mudaeImage;
   }
 
   static FromJson(data) {
     return new Character(
+      data.uuid,
       data.name,
       data.series,
       data.canonicalName,
+      data.canonicalSeries,
       data.image,
       data.birthday,
       data.birthmonth,
@@ -259,7 +320,11 @@ export default class Character {
       data.seriesImage,
       data.id,
       data.alternative,
-      data.tier
+      data.tier,
+      data.kakeraValue,
+      data.keysAmount,
+      data.mudaeName,
+      data.mudaeImage
     );
   }
 
@@ -273,39 +338,12 @@ export default class Character {
           min_year = edge.node.startDate.year;
           min_edge = edge;
         } else if (edge.node.startDate.year == min_year) {
-          // console.log(
-          //   "same year release!",
-          //   edge.node.startDate.year,
-          //   edge.node,
-          //   min_edge.node
-          // );
           if (edge.node.popularity > min_edge.node.popularity) {
-            // console.log(
-            //   "new series wins by popularity",
-            //   edge.node.title.romaji,
-            //   edge.node.popularity,
-            //   min_edge.node.title.romaji,
-            //   min_edge.node.popularity
-            // );
             min_edge = edge; // In case of same year releases, pick the one with the highest popularity
-          } else {
-            // console.log(
-            //   "current series wins by popularity",
-            //   min_edge.node.title.romaji,
-            //   min_edge.node.popularity,
-            //   edge.node.title.romaji,
-            //   edge.node.popularity
-            // );
           }
         }
       }
     });
-    // console.log(
-    //   `[${this.name}]::GetDefaultEdge`,
-    //   "Oldest edge: ",
-    //   min_year,
-    //   min_edge
-    // );
     return min_edge;
   }
 

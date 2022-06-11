@@ -182,7 +182,7 @@ export default class Series {
           seriesList.push(new Series(series));
         } else if (line.length > 0) {
           // New character
-          const c = new Character(line, series);
+          const c = new Character(null, line, series);
           characterList.push(c);
           seriesList[seriesList.length - 1].AddCharacter(c);
         }

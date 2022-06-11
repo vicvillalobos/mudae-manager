@@ -548,7 +548,6 @@ const filteredList = computed(() => {
       confirmText="Add Character"
       @add-character="addCharacter"
     />
-    <mmas-dialogue ref="mmasDialogueRef" @execute-mmas="executeMmas" />
     <export-dialogue ref="exportDialogueRef" />
   </div>
 </template>

@@ -1,11 +1,12 @@
 <template>
   <div class="mmas-modal-wrapper" :class="{ active }">
     <div class="modal-box">
-      <p>Paste the contents of your $mmas command.</p>
+      <p>Paste the contents of your <code>$mm</code> command. This will remove characters and add new ones.</p>
+      <p>Recommended command: <code>$mmai-sky+</code> <br/>Required flags: <code>s</code>, <code>a</code>. Compatible flags: <code>i-</code>, <code>y+</code> and <code>k</code></p>
       <textarea v-model="mmasInput"></textarea>
       <div class="actions">
-        <button @click.prevent="confirm">Start</button>
-        <button @click.prevent="cancel">Cancel</button>
+        <button class="btn btn-primary" @click.prevent="confirm">Start</button>
+        <button class="btn btn-secondary" @click.prevent="cancel">Cancel</button>
       </div>
     </div>
   </div>
@@ -64,9 +65,15 @@ export default {
       0px 2px 4px rgba(0, 0, 0, 0.1);
     padding: 2em;
     transition: all 0.2s ease;
-    text-align: center;
+    text-align: left;
     p {
-      font-size: 14px;
+      font-size: 0.8rem;
+      font-weight: 300;
+      margin:0;
+      margin-bottom:0.8em;
+    }
+    textarea {
+      margin-bottom: 1em;
     }
     .actions {
       display: flex;

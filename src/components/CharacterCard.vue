@@ -1,26 +1,16 @@
 <template>
   <div class="character-card-container" @click.stop="showModal">
-    <div class="character-card" :class="{ divorcing }">
+    <div class="character-card" :class="{ selected }">
       <div
         class="image"
-        :style="'background-image:url(\' ' + characterImage + ' \')'"
       >
+        <div class="characterGIF" :style="'background-image:url(\' ' + characterMudaeImage + ' \')'" v-if="characterMudaeImage.length > 0" ></div>
+        <div class="characterGIF" :style="'background-image:url(\' ' + characterImage + ' \')'" v-else></div>
+        <div class="characterStill" :style="'background-image:url(\' ' + characterImage + ' \')'" ></div>
         <img src="/spinner.gif" class="loading-spinner" v-if="isLoading" />
         <div class="action-icons">
-          <div class="action-icon" title="Remove" @click.stop="removeCharacter">
-            <i class="bi bi-trash"></i>
-          </div>
-          <div
-            class="action-icon divorce"
-            :title="
-              divorcing ? 'Remove from divorce list' : 'Add to divorce list'
-            "
-            @click.stop="divorceCharacter"
-          >
-            <i
-              class="bi"
-              :class="divorcing ? 'bi-heartbreak-fill' : 'bi-heartbreak'"
-            ></i>
+          <div class="action-icon action-select" title="Seleccionar" @click.stop="selectCharacter">
+            <i class="bi" :class="{'bi-square-fill': !selected, 'bi-check-square-fill': selected}"></i>
           </div>
         </div>
         <div class="loadingText" v-if="loading">Cargando...</div>
@@ -34,9 +24,8 @@
 
 <script>
 // Libraries
-import { ref, computed, onMounted } from "vue";
-import ColorThief from "colorthief";
-import hsv from "rgb-hsv";
+import { ref, computed, onMounted, inject } from "vue";
+
 // Models
 import Character from "../models/character";
 export default {
@@ -44,19 +33,20 @@ export default {
     character: {
       type: Object,
       default: () => {
-        return new Character("", "", "");
+        return new Character(null, "", "", "");
       },
+    },
+    selected: {
+      type: Boolean,
+      default: false,
     },
     loading: {
       type: Boolean,
       default: false,
     },
-    divorcing: {
-      type: Boolean,
-      default: false,
-    },
   },
   setup(props, ctx) {
+    const emitter = inject('emitter');
     const isLoading = ref(false);
     const modalActive = ref(false);
     const modalShown = ref(false);
@@ -80,7 +70,7 @@ export default {
     };
     const showModal = async function () {
       isLoading.value = true;
-      ctx.emit("show-modal", props.character);
+      emitter.emit('show-character-card', props.character.uuid);
       setTimeout(() => {
         isLoading.value = false;
       }, 2000);
@@ -98,14 +88,14 @@ export default {
       return props.character.image;
     });
 
-    const removeCharacter = function () {
-      console.log("remove character");
-      ctx.emit("delete-character", props.character);
-    };
+    const characterMudaeImage = computed(() => {
+      if (props.character.mudaeImage.length <= 0)
+        return "";
+      return props.character.mudaeImage;
+    })
 
-    const divorceCharacter = function () {
-      console.log("divorce character");
-      ctx.emit("toggle-divorce", props.character);
+    const selectCharacter = function () {
+      ctx.emit("character-selected", props.character.uuid);
     };
 
     return {
@@ -115,13 +105,13 @@ export default {
       modalFlipped,
       editForm,
       characterImage,
+      characterMudaeImage,
       charImgTag,
       currentTab,
       showModal,
       hideModal,
       editFormStart,
-      removeCharacter,
-      divorceCharacter,
+      selectCharacter,
     };
   },
 };
@@ -143,6 +133,28 @@ export default {
   background-color: #fff;
   transition: all 0.2s ease-in;
   .image {
+    position:relative;
+    .characterGIF {
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      display: none;
+      position:absolute;
+      top:0;
+      left:0;
+    }
+    .characterStill {
+      width: 100%;
+      height: 100%;
+      background-size: cover;
+      background-position: center;
+      opacity:1;
+      position:absolute;
+      top:0;
+      left:0;
+      transition:opacity 0s ease-in;
+    }
     .loading-spinner {
       position: absolute;
       width: 20px;
@@ -179,7 +191,7 @@ export default {
       position: relative;
       .action-icon {
         padding: 5px;
-        opacity: 0.5;
+        opacity: 1;
         transition: all 0.2s ease;
         &:hover {
           opacity: 1;
@@ -203,12 +215,21 @@ export default {
       overflow: hidden;
       border-width: 0px;
       opacity: 0;
-      transition: all 0.2s ease;
+      transition: all 0.1s ease;
     }
   }
   &:hover {
     z-index: 99;
-    transform: scale(1.2);
+    transform: scale(1.05);
+    .image {
+      .characterGIF {
+        display:block;
+      }
+      .characterStill {
+        opacity:0;
+        transition:opacity 0.2s ease-in;
+      }
+    }
     .text {
       opacity: 1;
       border-width: 4px;
@@ -217,8 +238,18 @@ export default {
       opacity: 1;
     }
   }
-  &.divorcing {
-    background-color: #70188a;
+  &.selected {
+    background-color: rgb(0, 132, 255);
+
+    .action-icons {
+      opacity: 1;
+      .action-select {
+        opacity: 1;
+        .bi {
+          color: rgb(0, 132, 255);
+        }
+      }
+    }
     .image::before {
       position: absolute;
       content: "";
@@ -226,7 +257,6 @@ export default {
       left: 0;
       width: 100%;
       height: 100%;
-      background-color: #70188a;
       opacity: 0.5;
       z-index: 0;
     }
