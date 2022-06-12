@@ -162,6 +162,8 @@ const mutations = {
         // Get data from local storage
         const encoded = localStorage.getItem(LOCAL_STORAGE_CLAIMED_KEY);
 
+        if (!encoded) return;
+
         // Decode from base64
         const json = decodeURIComponent(atob(encoded));
 
@@ -175,14 +177,21 @@ const mutations = {
         // Get data from local storage
         const encoded = localStorage.getItem(LOCAL_STORAGE_WISHED_KEY);
 
+        if (!encoded) return;
+
         // Decode from base64
         const json = decodeURIComponent(atob(encoded));
 
+        try {
         // Convert to JS object
         const wishedCharacters = JSON.parse(json);
 
         // Update state
         CharactersData.value.wished = wishedCharacters.map(character => Character.FromJson(character));
+        } catch (e) {
+            console.log("Error parsing data: ", e);
+            console.log(json);
+        }
     }
 }
 
@@ -211,6 +220,12 @@ function SaveClaimedCharacters() {
     addToast("Saved claimed characters", "check", 2000);
 }
 
+function SaveWishedCharacters() {
+    mutations.m_saveWishedCharacters();
+
+    addToast("Saved wishlist", "check", 2000);
+}
+
 function SaveCharacterData(uuid, new_data) {
     const index = CharactersData.value.claimed.findIndex(c => c.uuid == uuid);
     const updated_character = Character.FromJson(new_data);
@@ -219,7 +234,7 @@ function SaveCharacterData(uuid, new_data) {
 }
 
 function SaveAll() {
-    mutations.m_saveClaimedCharacters();
+    mutations.m_saveToStorage();
 
     addToast("Saved all characters", "check", 2000);
 }

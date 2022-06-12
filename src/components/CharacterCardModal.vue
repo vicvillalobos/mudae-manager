@@ -34,6 +34,14 @@
           <div class="series">
             {{ characterOrEmpty.series }}
           </div>
+          <div class="amounts">
+            <div class="kakera">
+              <img class="text-icon" src="/images/kakera.webp" /> {{ characterOrEmpty.kakeraValue }}
+            </div>
+            <div class="keys">
+              <i class="bi bi-key-fill"></i> {{ characterOrEmpty.keysAmount }}
+            </div>
+          </div>
           <div class="tabs-wrapper">
             <div class="tabs-nav">
               <div
@@ -159,7 +167,11 @@ export default {
     },
     characterOrEmpty() {
       if (this.character == null) return new Character(null, "", "");
-      return CharactersData.value.claimed.find( x => x.uuid == this.character ) || new Character(null, "", "");
+      const claimedCharacter = CharactersData.value.claimed.find( x => x.uuid == this.character );
+      if (claimedCharacter != null && claimedCharacter.characterList == "claimed") return claimedCharacter;
+      const wishedCharacter = CharactersData.value.wished.find( x => x.uuid == this.character );
+      if (wishedCharacter != null && wishedCharacter.characterList == "wished") return wishedCharacter;
+      return new Character(null, "", "");
     },
     characterImage() {
       if (this.characterOrEmpty.name.length <= 0) return "";
@@ -367,6 +379,14 @@ export default {
         );
         backdrop-filter: blur(5px);
         z-index: 191;
+      }
+    }
+    .amounts {
+      display:flex;
+      column-gap: 10px;
+      .text-icon {
+        height:1.3em;
+        vertical-align: middle;
       }
     }
     .content {

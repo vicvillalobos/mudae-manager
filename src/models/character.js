@@ -24,7 +24,8 @@ export default class Character {
     kakeraValue = 0,
     keysAmount = 0,
     mudaeName = "",
-    mudaeImage = ""
+    mudaeImage = "",
+    characterList = "claimed"
   ) {
     // if (name.length > 0) {
     //   console.trace("New Character: ", name);
@@ -54,6 +55,7 @@ export default class Character {
     this.keysAmount = keysAmount;
     this.mudaeName = mudaeName;
     this.mudaeImage = mudaeImage;
+    this.characterList = characterList;
     this.status = "parsed";
   }
 
@@ -275,6 +277,7 @@ export default class Character {
       keysAmount: this.keysAmount,
       mudaeName: this.mudaeName,
       mudaeImage: this.mudaeImage,
+      characterList: this.characterList,
     };
   }
 
@@ -300,6 +303,7 @@ export default class Character {
     this.keysAmount = data.keysAmount;
     this.mudaeName = data.mudaeName;
     this.mudaeImage = data.mudaeImage;
+    this.characterList = data.characterList;
   }
 
   static FromJson(data) {
@@ -324,7 +328,8 @@ export default class Character {
       data.kakeraValue,
       data.keysAmount,
       data.mudaeName,
-      data.mudaeImage
+      data.mudaeImage,
+      data.characterList
     );
   }
 
