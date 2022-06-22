@@ -33,8 +33,8 @@
                 <div class="col-md-5">
                     <div class="text">
                         {{ selectedCharacters.length }} of {{ claimedCharacterList.length }} characters selected. 
-                        <span v-if="claimedCharacterList.length > selectedCharacters.length">(<a href="#" @click="selectAll">Select all</a>)</span>
-                        <span v-else>(<a href="#" @click="deselectAll">Deselect all</a>)</span>
+                        <span v-if="claimedCharacterList.length > selectedCharacters.length">(<a href="#" @click.prevent="selectAll">Select all</a>)</span>
+                        <span v-else>(<a href="#" @click.prevent="deselectAll">Deselect all</a>)</span>
                     </div>
                 </div>
             </div>

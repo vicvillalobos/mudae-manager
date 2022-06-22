@@ -8,6 +8,7 @@ import Series from "../models/series";
 import { addToast } from "./toast";
 
 const LOCAL_STORAGE_CLAIMED_KEY = "mm_claimed_characters";
+const LOCAL_STORAGE_WISHED_KEY = "mm_wished_characters";
 
 // State
 const CharactersData = ref({
@@ -31,9 +32,19 @@ const mutations = {
         CharactersData.value.claimed = [...CharactersData.value.claimed, ...charactersToBeAdded];
     },
 
+    /// Adds characters to the wished list
+    m_addWishedCharacters(charactersToBeAdded) {
+        CharactersData.value.wished = [...CharactersData.value.wished, ...charactersToBeAdded];
+    },
+
     /// Removes characters from claimed list
     m_removeClaimedCharacters(charactersToBeRemoved) {
         CharactersData.value.claimed = CharactersData.value.claimed.filter(character => !charactersToBeRemoved.includes(character));
+    },
+
+    /// Removes characters from wished list
+    m_removeWishedCharacters(charactersToBeRemoved) {
+        CharactersData.value.wished = CharactersData.value.wished.filter(character => !charactersToBeRemoved.includes(character));
     },
 
     /// Updates character data from claimed list
@@ -114,9 +125,11 @@ const mutations = {
     },
     m_saveToStorage() {
         mutations.m_saveClaimedCharacters();
+        mutations.m_saveWishedCharacters();
     },
     m_loadFromStorage() {
         mutations.m_loadClaimedCharacters();
+        mutations.m_loadWishedCharacters();
     },
     /// Saves data to local Storage
     /// TODO: Optimize storage to avoid max size limit
@@ -133,9 +146,23 @@ const mutations = {
         // TODO: Associate key with username
         localStorage.setItem(LOCAL_STORAGE_CLAIMED_KEY, encoded);
     },
+    m_saveWishedCharacters() {
+        const wishedCharacters = CharactersData.value.wished.map(x => x.toJson());
+
+        // Convert to JSON
+        const json = JSON.stringify(wishedCharacters);
+
+        // Encode to base64
+        const encoded = btoa(encodeURIComponent(json));
+
+        // Save to local storage
+        localStorage.setItem(LOCAL_STORAGE_WISHED_KEY, encoded);
+    },
     m_loadClaimedCharacters() {
         // Get data from local storage
         const encoded = localStorage.getItem(LOCAL_STORAGE_CLAIMED_KEY);
+
+        if (!encoded) return;
 
         // Decode from base64
         const json = decodeURIComponent(atob(encoded));
@@ -145,6 +172,26 @@ const mutations = {
 
         // Update state
         CharactersData.value.claimed = claimedCharacters.map(character => Character.FromJson(character));
+    },
+    m_loadWishedCharacters() {
+        // Get data from local storage
+        const encoded = localStorage.getItem(LOCAL_STORAGE_WISHED_KEY);
+
+        if (!encoded) return;
+
+        // Decode from base64
+        const json = decodeURIComponent(atob(encoded));
+
+        try {
+        // Convert to JS object
+        const wishedCharacters = JSON.parse(json);
+
+        // Update state
+        CharactersData.value.wished = wishedCharacters.map(character => Character.FromJson(character));
+        } catch (e) {
+            console.log("Error parsing data: ", e);
+            console.log(json);
+        }
     }
 }
 
@@ -173,6 +220,12 @@ function SaveClaimedCharacters() {
     addToast("Saved claimed characters", "check", 2000);
 }
 
+function SaveWishedCharacters() {
+    mutations.m_saveWishedCharacters();
+
+    addToast("Saved wishlist", "check", 2000);
+}
+
 function SaveCharacterData(uuid, new_data) {
     const index = CharactersData.value.claimed.findIndex(c => c.uuid == uuid);
     const updated_character = Character.FromJson(new_data);
@@ -181,7 +234,7 @@ function SaveCharacterData(uuid, new_data) {
 }
 
 function SaveAll() {
-    mutations.m_saveClaimedCharacters();
+    mutations.m_saveToStorage();
 
     addToast("Saved all characters", "check", 2000);
 }
